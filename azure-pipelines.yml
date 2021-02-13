@@ -1,63 +1,35 @@
 trigger:
-- none
+- master
+ 
+pool:
+  vmImage: 'ubuntu-latest'
+ 
+steps:
+- script: echo K8S Terraform Azure!
+  displayName: 'Run a one-line script'
+- task: DownloadSecureFile@1
+  name: publickey
+  inputs:
+    secureFile: 'azure_rsa.pub'
 
-variables:
-  vmImageName: 'ubuntu-latest'
-  location: 'Korea Central'
-  terraformVersion: 0.14.5
-  azureSubscriptionServiceConnectionName: 'SvcConn4Handson'
-  tfStateResourceGroupName: 'terraform-ref-rg'
-  tfStateAzureStorageAccountSku: 'Standard_LRS'
-  tfStateAzureStorageAccountName: 'zerobigtfstate'
-  tfStateContainerName: 'zerobigtfstatecont'
-  tag: '$(Build.BuildId)'
-
-stages:
-- stage: Build
-  displayName: Build image
-  jobs:  
-  - job: Build
-    displayName: Build
-    pool:
-      vmImage: $(vmImageName)
-    steps:
-    - task: Docker@2
-      inputs:
-        containerRegistry: 'zeroacrdemo'
-        repository: 'hello_rest_api'
-        command: 'buildAndPush'
-        Dockerfile: '**/Dockerfile'
-        tags: '$(tag)'
-    - task: CopyFiles@2
-      inputs:
-        SourceFolder: '$(System.DefaultWorkingDirectory)'
-        Contents: '**/*.yaml'
-        TargetFolder: '$(Build.ArtifactStagingDirectory)'
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-        ArtifactName: 'helloartifact'
-        publishLocation: 'Container'
-
-- stage: Deploy
-  displayName: Deploy image
-  jobs:  
-  - job: Deploy
-    displayName: Deploy
-    pool:
-      vmImage: $(vmImageName)
-
-    steps:
-    - task: DownloadPipelineArtifact@2
-      inputs:
-        buildType: 'current'
-        artifactName: 'helloartifact'
-        itemPattern: '**/*.yaml'
-        targetPath: '$(System.ArtifactsDirectory)'
-    - task: KubernetesManifest@0
-      inputs:
-        action: 'deploy'
-        kubernetesServiceConnection: 'zeroaksdemo'
-        namespace: 'default'
-        manifests: '$(System.ArtifactsDirectory)/configuration/k8s/deployment.yaml'
-        containers: 'zeroacrdemo.azurecr.io/hello_rest_api:$(tag)'
+- task: TerraformCLI@0
+  inputs:
+    command: 'init'
+    workingDirectory: '$(System.DefaultWorkingDirectory)/configuration/iaac/azure'
+    backendType: 'azurerm'
+    backendServiceArm: 'SvcConn4TFHandson'
+    ensureBackend: true
+    backendAzureRmResourceGroupName: 'backend-rg'
+    backendAzureRmResourceGroupLocation: 'koreacentral'
+    backendAzureRmStorageAccountName: 'zerosa4demo'
+    backendAzureRmContainerName: 'storageaccntcontainer'
+    backendAzureRmKey: 'k8s.tfstate'
+    allowTelemetryCollection: true
+ 
+- task: TerraformCLI@0
+  inputs:
+    command: 'apply'
+    workingDirectory: '$(System.DefaultWorkingDirectory)/configuration/iaac/azure'
+    environmentServiceName: 'SvcConn4TFHandson'
+    commandOptions: '-var client_id=$(client_id) -var client_secret=$(client_secret) -var ssh_public_key=$(publickey.secureFilePath)'
+    allowTelemetryCollection: true
