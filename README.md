@@ -1,3 +1,1 @@
-This code is used to demostrate the implementation of DevOps using Azure DevOps Pipeline, Terraform, Docker registry and Kubernetes. A simple python hello api is deployed in the Kubernetes cluster using AzurePipeline and the backend Kubernetes cluster is created using Terraform.
-
-API URL :- SERVER:5000/hello
+Azure DevOps 파이프라인에 Terraform을 구성하여 AKS를 배포하는 데모
